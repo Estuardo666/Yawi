@@ -52,6 +52,9 @@ class Totem_Manager {
 		// Enqueue Scripts
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
+		// Add type="module" to script tag
+		add_filter( 'script_loader_tag', array( $this, 'add_type_module' ), 10, 3 );
+
 		// Initialize Cron
 		add_action( 'totem_monthly_analysis', array( 'Totem_Manager\\Totem_Cron', 'run_analysis' ) );
 	}
@@ -74,13 +77,12 @@ class Totem_Manager {
 		}
 
 		$script_asset = $this->get_asset_file( 'src/main.jsx' );
-		$style_asset  = $this->get_asset_file( 'src/index.css' ); // Vite usually bundles css in JS or separate file
 
 		if ( $script_asset ) {
 			wp_enqueue_script(
 				'totem-manager-app',
 				TOTEM_PLUGIN_URL . 'dist/' . $script_asset['file'],
-				array(),
+				array( 'jquery', 'wp-element' ), // Dependencies
 				TOTEM_VERSION,
 				true
 			);
@@ -94,20 +96,26 @@ class Totem_Manager {
 					'roles' => wp_get_current_user()->roles,
 				)
 			) );
-		}
 
-		// Enqueue CSS if it exists (Vite output logic varies)
-		// We will look for CSS in manifest if available
-		if ( isset( $script_asset['css'] ) && is_array( $script_asset['css'] ) ) {
-			foreach ( $script_asset['css'] as $css_file ) {
-				wp_enqueue_style(
-					'totem-manager-style',
-					TOTEM_PLUGIN_URL . 'dist/' . $css_file,
-					array(),
-					TOTEM_VERSION
-				);
+			// Enqueue CSS from Manifest
+			if ( isset( $script_asset['css'] ) && is_array( $script_asset['css'] ) ) {
+				foreach ( $script_asset['css'] as $css_file ) {
+					wp_enqueue_style(
+						'totem-manager-style',
+						TOTEM_PLUGIN_URL . 'dist/' . $css_file,
+						array(),
+						TOTEM_VERSION
+					);
+				}
 			}
 		}
+	}
+
+	public function add_type_module( $tag, $handle, $src ) {
+		if ( 'totem-manager-app' !== $handle ) {
+			return $tag;
+		}
+		return '<script type="module" src="' . esc_url( $src ) . '"></script>';
 	}
 
 	/**
