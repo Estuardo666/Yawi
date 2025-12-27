@@ -1,12 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 
 const PocketExpense = () => {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('meals');
   const [billable, setBillable] = useState(false);
+  const [userId, setUserId] = useState('');
+  const [users, setUsers] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    api.getUsers().then(setUsers).catch(console.error);
+    // Set default user if available (e.g. current user) - assuming window.totemSettings.user.id
+    if (window.totemSettings?.user?.id) {
+        setUserId(window.totemSettings.user.id);
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -14,7 +24,12 @@ const PocketExpense = () => {
     setMessage('');
 
     try {
-      await api.submitExpense({ amount, category, billable });
+      await api.submitExpense({
+          amount,
+          category,
+          billable,
+          user_id: userId
+      });
       setMessage('Expense saved successfully!');
       setAmount('');
       setBillable(false);
@@ -29,6 +44,21 @@ const PocketExpense = () => {
     <div className="max-w-md mx-auto glass-panel p-6">
       <h2 className="text-xl font-bold mb-6">Totem Pocket</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Assigned To</label>
+          <select
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+            className="w-full p-3 rounded-lg border border-gray-200 outline-none"
+            required
+          >
+            <option value="">Select Staff...</option>
+            {users.map(user => (
+                <option key={user.id} value={user.id}>{user.name}</option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <label className="block text-sm font-medium mb-1">Amount ($)</label>
           <input

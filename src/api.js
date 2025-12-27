@@ -122,6 +122,17 @@ export const api = {
       }
   },
 
+  getUsers: async () => {
+      if (isDev) return [{ id: 1, name: 'John Doe' }, { id: 2, name: 'Jane Smith' }];
+      try {
+          const res = await fetch(`${API_ROOT}totem/v1/users`, { headers });
+          return handleResponse(res);
+      } catch (e) {
+          console.error("Fetch Users Failed:", e);
+          throw e;
+      }
+  },
+
 
   // Finance
   getFinanceStats: async () => {
