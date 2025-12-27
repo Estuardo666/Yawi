@@ -38,6 +38,7 @@ class Totem_Activator {
 			name text NOT NULL,
 			status varchar(50) DEFAULT 'backlog' NOT NULL,
 			deadline datetime DEFAULT NULL,
+			budget decimal(10,2) DEFAULT 0.00,
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			PRIMARY KEY  (id),
 			KEY client_id (client_id)

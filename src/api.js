@@ -7,8 +7,12 @@ const isDev = !window.totemSettings;
 
 const mockData = {
   projects: [
-    { id: 1, name: 'Summer Campaign', status: 'active', deadline: '2023-12-01' },
-    { id: 2, name: 'Website Redesign', status: 'pending', deadline: '2024-01-15' },
+    { id: 1, name: 'Summer Campaign', status: 'active', deadline: '2023-12-01', client_name: 'Client A' },
+    { id: 2, name: 'Website Redesign', status: 'pending', deadline: '2024-01-15', client_name: 'Client B' },
+  ],
+  clients: [
+      { id: 1, name: 'Client A' },
+      { id: 2, name: 'Client B' }
   ],
   finance: {
     income: 50000,
@@ -40,6 +44,7 @@ const handleResponse = async (response) => {
 };
 
 export const api = {
+  // Projects
   getProjects: async () => {
     if (isDev) return mockData.projects;
     try {
@@ -48,6 +53,24 @@ export const api = {
     } catch (e) {
       console.error("Fetch Projects Failed:", e);
       throw e;
+    }
+  },
+
+  createProject: async (data) => {
+    if (isDev) {
+        console.log("Mock create project", data);
+        return { success: true, id: Math.random() };
+    }
+    try {
+        const res = await fetch(`${API_ROOT}totem/v1/projects`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(data)
+        });
+        return handleResponse(res);
+    } catch (e) {
+        console.error("Create Project Failed:", e);
+        throw e;
     }
   },
 
@@ -69,6 +92,38 @@ export const api = {
     }
   },
 
+  // Clients
+  getClients: async () => {
+      if (isDev) return mockData.clients;
+      try {
+          const res = await fetch(`${API_ROOT}totem/v1/clients`, { headers });
+          return handleResponse(res);
+      } catch (e) {
+          console.error("Fetch Clients Failed:", e);
+          throw e;
+      }
+  },
+
+  createClient: async (data) => {
+      if (isDev) {
+          console.log("Mock create client", data);
+          return { success: true, id: Math.random() };
+      }
+      try {
+          const res = await fetch(`${API_ROOT}totem/v1/clients`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(data)
+          });
+          return handleResponse(res);
+      } catch (e) {
+          console.error("Create Client Failed:", e);
+          throw e;
+      }
+  },
+
+
+  // Finance
   getFinanceStats: async () => {
     if (isDev) return mockData.finance;
     try {
@@ -80,6 +135,7 @@ export const api = {
     }
   },
 
+  // Pocket
   submitExpense: async (data) => {
     if (isDev) {
       console.log("Mock submit expense:", data);
@@ -98,6 +154,7 @@ export const api = {
     }
   },
 
+  // Settings
   getSettings: async () => {
     if (isDev) return mockData.options;
     try {

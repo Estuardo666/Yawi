@@ -10,6 +10,20 @@ class Totem_Api {
 	public static function register_routes() {
 		$controller = new self();
 
+		// Clients
+		register_rest_route( 'totem/v1', '/clients', array(
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $controller, 'get_clients' ),
+				'permission_callback' => array( $controller, 'permissions_check' ),
+			),
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $controller, 'create_client' ),
+				'permission_callback' => array( $controller, 'permissions_check_write' ),
+			),
+		) );
+
 		// Projects
 		register_rest_route( 'totem/v1', '/projects', array(
 			array(
@@ -77,14 +91,58 @@ class Totem_Api {
 		return current_user_can( 'manage_options' ) || current_user_can('manage_totem_finance');
 	}
 
+	// --- Clients ---
+
+	public function get_clients( $request ) {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'totem_clients';
+		try {
+			$results = $wpdb->get_results( "SELECT * FROM $table_name ORDER BY created_at DESC" );
+			return rest_ensure_response( $results );
+		} catch ( \Exception $e ) {
+			return new \WP_Error( 'db_error', $e->getMessage(), array( 'status' => 500 ) );
+		}
+	}
+
+	public function create_client( $request ) {
+		global $wpdb;
+		$params = $request->get_json_params();
+		$name = sanitize_text_field( $params['name'] ?? '' );
+		$email = sanitize_email( $params['email'] ?? '' );
+		$logo_url = esc_url_raw( $params['logo_url'] ?? '' );
+
+		if ( empty( $name ) ) {
+			return new \WP_Error( 'invalid_param', 'Client name required', array( 'status' => 400 ) );
+		}
+
+		$wpdb->insert(
+			$wpdb->prefix . 'totem_clients',
+			array(
+				'name' => $name,
+				'contact_email' => $email,
+				'logo_url' => $logo_url
+			),
+			array( '%s', '%s', '%s' )
+		);
+
+		return rest_ensure_response( array( 'id' => $wpdb->insert_id, 'message' => 'Client created' ) );
+	}
+
 	// --- Projects ---
 
 	public function get_projects( $request ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'totem_projects';
+		$clients_table = $wpdb->prefix . 'totem_clients';
 
 		try {
-			$results = $wpdb->get_results( "SELECT * FROM $table_name ORDER BY created_at DESC" );
+			// Join with clients to get client name if possible, or just return raw
+			$results = $wpdb->get_results( "
+				SELECT p.*, c.name as client_name
+				FROM $table_name p
+				LEFT JOIN $clients_table c ON p.client_id = c.id
+				ORDER BY p.created_at DESC
+			" );
 			return rest_ensure_response( $results );
 		} catch ( \Exception $e ) {
 			return new \WP_Error( 'db_error', $e->getMessage(), array( 'status' => 500 ) );
@@ -96,22 +154,31 @@ class Totem_Api {
 		$params = $request->get_json_params();
 		$name = sanitize_text_field( $params['name'] ?? '' );
 		$client_id = intval( $params['client_id'] ?? 0 );
+		$budget = floatval( $params['budget'] ?? 0 );
+		$deadline = sanitize_text_field( $params['deadline'] ?? '' );
 
 		if ( empty( $name ) ) {
 			return new \WP_Error( 'invalid_param', 'Project name required', array( 'status' => 400 ) );
 		}
+
+		// Convert deadline to SQL format if necessary, assuming ISO from frontend
+		if ( empty( $deadline ) ) $deadline = null;
 
 		$wpdb->insert(
 			$wpdb->prefix . 'totem_projects',
 			array(
 				'name' => $name,
 				'client_id' => $client_id,
-				'status' => 'backlog'
+				'status' => 'backlog',
+				'budget' => $budget,
+				'deadline' => $deadline
 			),
-			array( '%s', '%d', '%s' )
+			array( '%s', '%d', '%s', '%f', '%s' )
 		);
 
-		return rest_ensure_response( array( 'id' => $wpdb->insert_id, 'message' => 'Project created' ) );
+		$project_id = $wpdb->insert_id;
+
+		return rest_ensure_response( array( 'id' => $project_id, 'message' => 'Project created' ) );
 	}
 
 	public function update_project( $request ) {

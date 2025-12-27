@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { LayoutDashboard, Wallet, Receipt, Settings as SettingsIcon } from 'lucide-react';
+import { LayoutDashboard, Wallet, Receipt, Settings as SettingsIcon, Users } from 'lucide-react';
 
 const Layout = ({ children }) => {
   return (
@@ -17,6 +17,10 @@ const Layout = ({ children }) => {
           <NavLink to="/" className={({isActive}) => `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive ? 'bg-[var(--primary)] text-white' : 'hover:bg-white/50'}`}>
             <LayoutDashboard size={20} />
             <span>Projects</span>
+          </NavLink>
+          <NavLink to="/clients" className={({isActive}) => `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive ? 'bg-[var(--primary)] text-white' : 'hover:bg-white/50'}`}>
+            <Users size={20} />
+            <span>Clients</span>
           </NavLink>
           <NavLink to="/finance" className={({isActive}) => `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive ? 'bg-[var(--primary)] text-white' : 'hover:bg-white/50'}`}>
             <Wallet size={20} />
